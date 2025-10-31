@@ -4,6 +4,7 @@
 
     **Input:**
     `it (cap) was the best of times, it was the worst of times (up) , it was the age of wisdom, it was the age of foolishness (cap, 6) , it was the epoch of belief, it was the epoch of incredulity, it was the season of Light, it was the season of darkness, it was the spring of hope, IT WAS THE (low, 3) winter of despair.`
+    
     **Output:**
     `It was the best of times, it was the worst of TIMES, it was the age of wisdom, It Was The Age Of Foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of Light, it was the season of darkness, it was the spring of hope, it was the winter of despair.`
 
@@ -18,6 +19,7 @@
 
     **Input:**
     `Simply add 42 (hex) and 10 (bin) and you will see the result is 68.`
+    
     **Output:**
     `Simply add 66 and 2 and you will see the result is 68.`
 
@@ -29,6 +31,7 @@
 
     **Input:**
     `Punctuation tests are ... kinda boring ,what do you think ?`
+    
     **Output:**
     `Punctuation tests are... kinda boring, what do you think?`
 
@@ -40,6 +43,7 @@
 
     **Input:**
     `There is no greater agony than bearing a untold story inside you.`
+    
     **Output:**
     `There is no greater agony than bearing an untold story inside you.`
 
@@ -53,6 +57,7 @@
 
     **Input:**
     `In total, we found 1E (hex) boxes and 101 (bin) coins in the cave.`
+    
     **Output:**
     `In total, we found 30 boxes and 5 coins in the cave.`
 
@@ -64,6 +69,7 @@
 
     **Input:**
     `He whispered: This is the final test (up, 3) and it will be great.`
+    
     **Output:**
     `He whispered: This is THE FINAL TEST and it will be great.`
 
@@ -74,6 +80,7 @@
 
     **Input:**
     `I can’t believe it ,this is amazing !! She said ‘ incredible work ‘ indeed.`
+    
     **Output:**
     `I can’t believe it, this is amazing!! She said ‘incredible work‘ indeed.`
 
@@ -86,6 +93,7 @@
 
     **Input:**
     `A honest person and a elephant entered the arena in athens (cap).`
+    
     **Output:**
     `An honest person and an elephant entered the arena in Athens.`
 
@@ -98,6 +106,7 @@
 
     **Input:**
     `The SECRET WILL (low, 2) be revealed soon … or will it ? Maybe never (up)!`
+    
     **Output:**
     `The secret will be revealed soon… or will it? Maybe NEVER!`
 
