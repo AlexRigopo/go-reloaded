@@ -17,22 +17,13 @@ func transform(s string) string {
 		out = append(out, tk)
 	}
 
-	// Deduplicate consecutive identical tokens
-	cleaned := make([]Token, 0, len(out))
-	for i, tk := range out {
-		if i > 0 && tk.text == out[i-1].text && tk.kind == out[i-1].kind {
-			continue
-		}
-		cleaned = append(cleaned, tk)
-	}
-	out = cleaned
-
 	var b strings.Builder
 	for _, tk := range out {
 		b.WriteString(tk.text)
 	}
 	res := b.String()
 
+	res = fixEllipsis(res)
 	res = fixPunctuationSpacing(res)
 	res = fixQuoteSpacing(res)
 	res = fixArticles(res)
