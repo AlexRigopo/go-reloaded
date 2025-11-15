@@ -23,13 +23,15 @@ func transform(s string) string {
 	}
 	res := b.String()
 
+	// Post-processing pipeline (in this exact order)
 	res = fixEllipsis(res)
+	res = fixCommonGrammar(res)
 	res = fixPunctuationSpacing(res)
+	res = fixSpacing(res)
 	res = fixQuoteSpacing(res)
+	res = fixQuoteOutsideSpacing(res)
 	res = fixArticles(res)
 	res = fixSentenceCapitalization(res)
-	res = fixSpacing(res)
-	res = fixCommonGrammar(res)
 
 	return res
 }

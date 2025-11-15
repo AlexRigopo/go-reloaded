@@ -6,35 +6,53 @@ import (
 	"unicode"
 )
 
-func fixPunctuationSpacing(s string) string {
-	// Remove spaces before punctuation
-	s = regexp.MustCompile(`\s+([.,!?:;])`).ReplaceAllString(s, `$1`)
-	// Ensure exactly one space after punctuation (unless followed by another punctuation or newline)
-	s = regexp.MustCompile(`([.,!?:;])\s*`).ReplaceAllString(s, `$1 `)
-	// Remove space before newline after punctuation
-	s = regexp.MustCompile(`([.,!?:;]) \n`).ReplaceAllString(s, `$1\n`)
-	return strings.TrimRight(s, " \t")
+// Join spaced ellipses like ". . ." or ".  .  . ." into "..." (keeping dot count)
+func fixEllipsis(s string) string {
+	re := regexp.MustCompile(`(\.\s+){2,}\.`)
+	return re.ReplaceAllStringFunc(s, func(m string) string {
+		count := strings.Count(m, ".")
+		return strings.Repeat(".", count)
+	})
 }
 
+// Fix spaces around punctuation (inside and outside quotes)
+func fixPunctuationSpacing(s string) string {
+	// Remove spaces BEFORE punctuation
+	s = regexp.MustCompile(`\s+([.,!?;:])`).ReplaceAllString(s, `$1`)
+	// Ensure a space AFTER punctuation if next is not space or punctuation
+	s = regexp.MustCompile(`([.,!?;:])([^\s.,!?;:])`).ReplaceAllString(s, `$1 $2`)
+	return s
+}
+
+// Trim spaces just INSIDE quotes: " hello " -> "hello", ' foo ' -> 'foo'
 func fixQuoteSpacing(s string) string {
-	// Remove spaces just INSIDE quotes, but do NOT touch spaces outside.
-	// " hello " => "hello"
+	// Opening quote + spaces
 	s = regexp.MustCompile(`(['"])\s+`).ReplaceAllString(s, `$1`)
+	// Spaces + closing quote
 	s = regexp.MustCompile(`\s+(['"])`).ReplaceAllString(s, `$1`)
 	return s
 }
 
-// needsAn decides if the word should use "an" (by rough English pronunciation).
+// Add spaces OUTSIDE double quotes, without touching apostrophes in words
+func fixQuoteOutsideSpacing(s string) string {
+	// Space BEFORE opening "
+	s = regexp.MustCompile(`([^ \n])(")`).ReplaceAllString(s, `$1 $2`)
+	// Space AFTER closing " if followed by non-space, non-punctuation
+	s = regexp.MustCompile(`(")([^ \n.,!?;:])`).ReplaceAllString(s, `$1 $2`)
+	return s
+}
+
+// Decide if the word should use "an" instead of "a" (approximate pronunciation)
 func needsAn(word string) bool {
 	lower := strings.ToLower(word)
 	if lower == "" {
 		return false
 	}
 
-	// Exceptions: vowel letters but consonant sounds → use "a", not "an"
-	// e.g. unicorn (you-), university, user, europe, eulogy, one, once, ubiquitous...
+	// Vowel letters but consonant-sound prefixes → use "a", not "an"
+	// e.g. unicorn (you-), user, eulogy, euro, one, hour, etc.
 	consonantSoundPrefixes := []string{
-		"uni", "use", "usu", "eur", "euro", "eul", "one", "once", "ubiq",
+		"uni", "use", "usu", "eur", "euro", "eul", "one", "once", "ubiq", "hou",
 	}
 	for _, pre := range consonantSoundPrefixes {
 		if strings.HasPrefix(lower, pre) {
@@ -42,7 +60,6 @@ func needsAn(word string) bool {
 		}
 	}
 
-	// Default: starts with a/e/i/o/u → use "an"
 	first := rune(lower[0])
 	return strings.ContainsRune("aeiou", first)
 }
@@ -59,13 +76,11 @@ func fixArticles(s string) string {
 		word := parts[2] // next word
 
 		if needsAn(word) {
-			// Should be "an"
 			if a == "A" {
 				return "An " + word
 			}
 			return "an " + word
 		}
-		// Should be "a"
 		if a == "A" {
 			return "A " + word
 		}
@@ -79,17 +94,15 @@ func fixArticles(s string) string {
 		if len(parts) != 3 {
 			return m
 		}
-		an := parts[1]   // "A" or "a" from "An" / "an"
+		an := parts[1]   // "A" or "a" from "An"/"an"
 		word := parts[2] // next word
 
 		if needsAn(word) {
-			// Should be "an"
 			if an == "A" {
 				return "An " + word
 			}
 			return "an " + word
 		}
-		// Should be "a"
 		if an == "A" {
 			return "A " + word
 		}
@@ -97,17 +110,6 @@ func fixArticles(s string) string {
 	})
 
 	return s
-}
-
-func fixEllipsis(s string) string {
-	// Match patterns like ". . ." or ".   .   . ."
-	re := regexp.MustCompile(`(\.\s+){2,}\.`)
-	return re.ReplaceAllStringFunc(s, func(m string) string {
-		// Count how many dots are in the match
-		count := strings.Count(m, ".")
-		// Return that many dots without spaces
-		return strings.Repeat(".", count)
-	})
 }
 
 func fixSentenceCapitalization(s string) string {
@@ -118,39 +120,30 @@ func fixSentenceCapitalization(s string) string {
 	for i := 0; i < n; i++ {
 		r := runes[i]
 
-		// Apply capitalization when needed
 		if capNext && unicode.IsLetter(r) {
 			runes[i] = unicode.ToUpper(r)
 			capNext = false
 			continue
 		}
 
-		// Handle sentence boundaries:
-		// - '.' ends a sentence, EXCEPT when part of "..."
-		// - '?' also ends a sentence
-		// - we IGNORE '!' as a sentence end to avoid unwanted caps after quotes,
-		//   like: ... "SPARTA!" but no one ...
 		if r == '.' {
-			// If we see "...", do NOT treat this as sentence end
+			// If it's part of "..." skip triggering capitalization
 			if i+2 < n && runes[i+1] == '.' && runes[i+2] == '.' {
 				continue
 			}
 			capNext = true
-		} else if r == '?' {
+		} else if r == '!' || r == '?' {
 			capNext = true
 		}
 	}
-
 	return string(runes)
 }
 
 func fixSpacing(s string) string {
-	// Collapse multiple whitespace into a single space
+	// Collapse any run of whitespace to a single space
 	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, " ")
 	// Remove spaces before punctuation
 	s = regexp.MustCompile(`\s+([.,!?;:])`).ReplaceAllString(s, `$1`)
-	// NOTE: we NO LONGER remove spaces before quotes here.
-	// Quote spacing is handled only inside fixQuoteSpacing.
 	return strings.TrimSpace(s)
 }
 
