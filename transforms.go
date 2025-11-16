@@ -28,8 +28,7 @@ func transform(s string) string {
 	res = fixCommonGrammar(res)
 	res = fixPunctuationSpacing(res)
 	res = fixSpacing(res)
-	res = fixQuoteSpacing(res)
-	res = fixQuoteOutsideSpacing(res)
+	res = normalizeQuotes(res)
 	res = fixArticles(res)
 	res = fixSentenceCapitalization(res)
 

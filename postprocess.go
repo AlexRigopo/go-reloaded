@@ -24,22 +24,100 @@ func fixPunctuationSpacing(s string) string {
 	return s
 }
 
-// Trim spaces just INSIDE quotes: " hello " -> "hello", ' foo ' -> 'foo'
-func fixQuoteSpacing(s string) string {
-	// Opening quote + spaces
-	s = regexp.MustCompile(`(['"])\s+`).ReplaceAllString(s, `$1`)
-	// Spaces + closing quote
-	s = regexp.MustCompile(`\s+(['"])`).ReplaceAllString(s, `$1`)
-	return s
-}
+// normalizeQuotes handles BOTH double-quoted and single-quoted quoted blocks,
+// without breaking contractions like don't, isn't, Alex's, girls'.
+func normalizeQuotes(s string) string {
+	runes := []rune(s)
+	n := len(runes)
 
-// Add spaces OUTSIDE double quotes, without touching apostrophes in words
-func fixQuoteOutsideSpacing(s string) string {
-	// Space BEFORE opening "
-	s = regexp.MustCompile(`([^ \n])(")`).ReplaceAllString(s, `$1 $2`)
-	// Space AFTER closing " if followed by non-space, non-punctuation
-	s = regexp.MustCompile(`(")([^ \n.,!?;:])`).ReplaceAllString(s, `$1 $2`)
-	return s
+	var out []rune
+	i := 0
+
+	for i < n {
+		r := runes[i]
+
+		// Detect potential opening quote (single or double)
+		if r == '"' || r == '\'' {
+
+			quote := r
+
+			// --- Check if this is an apostrophe inside a word (skip) ---
+			if quote == '\'' {
+				// If previous rune is a letter or digit → apostrophe inside word
+				if i > 0 && (unicode.IsLetter(runes[i-1]) || unicode.IsDigit(runes[i-1])) {
+					out = append(out, r)
+					i++
+					continue
+				}
+				// If next rune is a letter or digit → apostrophe inside word
+				if i+1 < n && (unicode.IsLetter(runes[i+1]) || unicode.IsDigit(runes[i+1])) {
+					out = append(out, r)
+					i++
+					continue
+				}
+			}
+
+			// --- This is a REAL opening quote ---
+			start := i
+			i++
+
+			var inside []rune
+
+			// Find closing matching quote
+			for i < n && runes[i] != quote {
+				inside = append(inside, runes[i])
+				i++
+			}
+
+			// No closing quote — treat as normal character
+			if i >= n {
+				out = append(out, runes[start:]...)
+				break
+			}
+
+			// i is now at the closing quote
+			i++ // move past closing quote
+
+			// Trim inner spacing
+			trimmed := strings.TrimSpace(string(inside))
+
+			// ---- Outside spacing rules ----
+
+			// Before opening quote: add space if previous is a word/number
+			if len(out) > 0 {
+				prev := out[len(out)-1]
+				if !unicode.IsSpace(prev) && !strings.ContainsRune("([{", prev) {
+					out = append(out, ' ')
+				}
+			}
+
+			// Add opening quote
+			out = append(out, quote)
+
+			// Add trimmed inside
+			out = append(out, []rune(trimmed)...)
+
+			// Add closing quote
+			out = append(out, quote)
+
+			// After closing quote — space if next is letter/number
+			if i < n {
+				next := runes[i]
+				if !unicode.IsSpace(next) &&
+					!strings.ContainsRune(".,!?;:)]}", next) {
+					out = append(out, ' ')
+				}
+			}
+
+			continue
+		}
+
+		// Normal character
+		out = append(out, r)
+		i++
+	}
+
+	return string(out)
 }
 
 // Decide if the word should use "an" instead of "a" (approximate pronunciation)

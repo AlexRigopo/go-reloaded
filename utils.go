@@ -1,3 +1,3 @@
 package main
 
-const debug = true
+const debug = false
